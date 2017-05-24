@@ -1,0 +1,170 @@
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3mobile.css">
+    script(src='/javascripts/main.js')
+    script(src="https://code.jquery.com/jquery-3.2.1.min.js", integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=", crossorigin="anonymous")
+  body(onload='init();')
+    block content
+  script.
+    navigator.getUserMedia = ( navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
+    var video;
+    var webcamStream;
+    function startWebcam() {
+      if (navigator.getUserMedia) {
+        if (webcamStream != null) stopWebcam();
+
+        var camera_id = document.getElementById("camera_options").value;
+        if (camera_id == "") {
+          var constraints = {video: true, audio: false};
+        } else {
+          var constraints = {video: {deviceId: camera_id}, audio: false}
+        }
+
+        navigator.getUserMedia (constraints,
+          // successCallback
+          function(localMediaStream) {
+            video = document.querySelector('video');
+            video.src = window.URL.createObjectURL(localMediaStream);
+            webcamStream = localMediaStream;
+
+            navigator.mediaDevices.enumerateDevices()
+                    .then(function(devices) {
+                      $("#camera_options").html("<option value=''>Default Camera</option>");
+                      devices.forEach(function(device) {
+                        if (device.kind == 'videoinput') {
+                          var selected = ''
+                          if (camera_id == device.deviceId) selected = 'selected';
+
+                          $("#camera_options").append("<option "+selected+" value='"+device.deviceId+"'>"+device.label+"</option>");
+                        }
+                      });
+                    });
+              
+          },
+          // errorCallback
+          function(err) {
+            console.log("The following error occured: " + err);
+        });
+      } else {
+        console.log("getUserMedia not supported");
+      }
+    }
+    function stopWebcam() {
+      webcamStream.getTracks().forEach(function(track){
+        track.stop();
+      });        
+    }
+
+    //---------------------
+    // TAKE A SNAPSHOT CODE
+    //---------------------
+    var canvas, ctx;
+    function init() {
+      // Get the canvas and obtain a context for
+      // drawing in it
+      canvas = document.getElementById("myCanvas");
+      ctx = canvas.getContext('2d');
+    }
+    function snapshot() {
+      // Draws current image from the video element into the canvas
+      videoPlayer = document.getElementById("video");
+
+      canvas.height = videoPlayer.videoHeight;
+      canvas.width = videoPlayer.videoWidth;
+
+      ctx.drawImage(video, 0,0,videoPlayer.videoWidth,videoPlayer.videoHeight);
+
+      var img = canvas.toDataURL('image/jpeg', 0.5);
+
+      $.ajax({
+        url: "visual-analysis/"+$("#visual_recognition_method").val(),
+        method: "POST",
+        data: {img: img},
+        success: function(response) {
+
+          var image_response = JSON.parse(response).images[0];
+          var colors = ["black"];
+
+          if ($("#visual_recognition_method").val() == "text") {
+              image_response.words.forEach(function(word, i){
+                  var word_top = word.location.top,
+                      word_left = word.location.left,
+                      word_width = word.location.width,
+                      word_height = word.location.height;
+
+                  if (word_height <= 20) {
+                    font_size = 20;
+                  } else {
+                    font_size = word_height;
+                  }
+                  ctx.beginPath();
+                  ctx.lineWidth="1";
+                  ctx.strokeStyle=colors[i%colors.length - 1];
+                  ctx.rect(word_left,word_top,word_width,word_height);
+                  ctx.stroke();
+                  
+                  ctx.font = "bolder "+font_size+"px  Monospace";
+                  ctx.fillStyle = colors[i%colors.length - 1];
+                  ctx.fillText(word.word.toUpperCase(),word_left+1,word_top-5+font_size);
+            });
+            $("#text_response").text(image_response.text);
+          } else if($("#visual_recognition_method").val() == "face") {
+            image_response.faces.forEach(function(face,i){
+                var face_top = face.face_location.top,
+                    face_left = face.face_location.left,
+                    face_height = face.face_location.height,
+                    face_width = face.face_location.width,
+                    color = colors[i%colors.length - 1],
+                    age_min = face.age.min,
+                    age_max = face.age.max,
+                    age_confidence = face.age.score,
+                    gender = face.gender.gender,
+                    gender_confidence = face.gender.score;
+
+                ctx.beginPath();
+                ctx.lineWidth="1";
+                ctx.strokeStyle=color;
+                ctx.rect(face_left,face_top,face_width,face_height);
+                ctx.stroke();
+                $("#text_response").html("<p><strong>Age: </strong>"+age_min+"-"+age_max+" ("+(age_confidence*100).toFixed(2)+"%)</p><p><strong>Gender: </strong>"+gender+" ("+(gender_confidence*100).toFixed(2)+"%)</p>");
+            });
+          } else {
+            $("#text_response").text(JSON.stringify(image_response));
+          }
+          
+        }
+      });
+
+      $("#img_file_upload").on("change", function(){
+        var file = $("#img_file_upload").get(0).files[0];
+        var formData = new FormData();
+        formData.append('file', file);
+        $.ajax({
+            url: '/test/file_capture',
+            //Ajax events
+            beforeSend: function (e) {
+              alert('Are you sure you want to upload document.');
+            },
+            success: function (e) {
+
+            },
+            error: function (e) {
+              alert('error ' + e.message);
+            },
+            // Form data
+            data: formData,
+            type: 'POST',
+            //Options to tell jQuery not to process data or worry about content-type.
+            cache: false,
+            contentType: false,
+            processData: false
+          });
+          return false;
+        });
+      });
+
+    }

@@ -1,0 +1,20 @@
+body {
+  padding: 16px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+p.well {
+    white-space: pre-wrap;
+    width: 400px;
+    border: 1px solid;
+    border-radius: 5px;
+    padding: 15px;
+    box-sizing: border-box;
+    background: #DDD;
+    font-size: 14px;
+    font-family: monospace;
+}

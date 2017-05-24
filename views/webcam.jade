@@ -1,0 +1,23 @@
+extend layout
+block content
+  h1 Take a snapshot of the current video stream
+  p Click on the Start WebCam button.
+  p
+    button(onclick='startWebcam();',style="width: 100%; display: block; height: 50px;") Start Cam
+    button(onclick='stopWebcam();',style="width: 100%; display: block; height: 50px;") Stop Cam
+    button(onclick='snapshot();',style="width: 100%; display: block; height: 50px;") Take Snapshot
+  select#visual_recognition_method(style="width: 100%; display: block; height: 50px;")
+    option(value="face") Detect Faces
+    option(value="text") Extract Text
+    option(value="emotion") Emotional Content
+  select#camera_options(style="width: 100%; display: block; height: 50px;", onchange="startWebcam();")
+    option(value="") Default Camera
+  video#video(onclick='snapshot(this);', style='margin-left: -8px; max-width: 100%;', controls='', autoplay='')
+  p
+    input#img_file_upload(type="file")
+  p
+    | Screenshots :
+  p
+    canvas#myCanvas(style='margin-left: -8px; max-width: 100%;')
+
+  p#text_response.well
