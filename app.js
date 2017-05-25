@@ -111,7 +111,7 @@ app.post('/visual-analysis/text', function(req, res){
 });
 
 
-app.post('/visual-analysis/emotion', function(req, res){
+app.post('/visual-analysis/painting', function(req, res){
   var snapshot = req.body.img;
   var message = "";
 
@@ -131,7 +131,7 @@ app.post('/visual-analysis/emotion', function(req, res){
 
         var params = {
           images_file: fs.createReadStream(file_path),
-          classifier_ids: ['OfficeArt_622256025']
+          classifier_ids: ['OfficeArt_622256025', 'default']
         };
 
         visual_recognition.classify(params,
